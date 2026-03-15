@@ -4,6 +4,10 @@ A lightweight tool for CS PhD students to track research progress across multipl
 
 ---
 
+![Project Checker main page](figures/screenshot-mainpage.png)
+
+---
+
 ## What it does
 
 - Connects to your GitHub repos (public **and** private, including repos you collaborate on)
