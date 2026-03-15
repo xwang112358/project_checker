@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma, setSetting } from "@/lib/db";
-import { fetchCommitsSince, fetchPRsSince, fetchIssuesSince, getRepoInfo } from "@/lib/github";
+import { fetchCommitsAllBranches, fetchPRsSince, fetchIssuesSince, getRepoInfo } from "@/lib/github";
 import { generateAndStoreSummary } from "@/lib/summarize";
 import { deriveProjectStatus } from "@/lib/utils";
 
@@ -43,9 +43,9 @@ export async function syncProject(
   // Update repo metadata
   const repoInfo = await getRepoInfo(owner, repo);
 
-  // Fetch new activity
-  const [commits, prs, issues] = await Promise.all([
-    fetchCommitsSince(owner, repo, lastSyncedAt),
+  // Fetch new activity across all branches
+  const [{ commits, branches }, prs, issues] = await Promise.all([
+    fetchCommitsAllBranches(owner, repo, lastSyncedAt),
     fetchPRsSince(owner, repo, lastSyncedAt),
     fetchIssuesSince(owner, repo, lastSyncedAt),
   ]);
@@ -103,6 +103,7 @@ export async function syncProject(
     projectName: repo,
     repoOwner: owner,
     repoName: repo,
+    branches,
   };
   await Promise.all([
     generateAndStoreSummary(summaryInput, "weekly"),

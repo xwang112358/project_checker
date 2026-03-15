@@ -4,7 +4,7 @@ import { getRepoInfo } from "@/lib/github";
 
 export async function GET() {
   const projects = await prisma.project.findMany({
-    orderBy: { lastActivityAt: "desc" },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     include: {
       summaries: {
         orderBy: { createdAt: "desc" },
@@ -13,6 +13,19 @@ export async function GET() {
     },
   });
   return NextResponse.json(projects);
+}
+
+export async function PATCH(req: NextRequest) {
+  const { order } = await req.json() as { order: { id: string; sortOrder: number }[] };
+  if (!Array.isArray(order)) {
+    return NextResponse.json({ error: "order must be an array" }, { status: 400 });
+  }
+  await Promise.all(
+    order.map(({ id, sortOrder }) =>
+      prisma.project.update({ where: { id }, data: { sortOrder } })
+    )
+  );
+  return NextResponse.json({ ok: true });
 }
 
 export async function POST(req: NextRequest) {

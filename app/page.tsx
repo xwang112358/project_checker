@@ -6,6 +6,22 @@ import { Settings, BookOpen } from "lucide-react";
 import SyncBar from "@/components/SyncBar";
 import ProjectCard from "@/components/ProjectCard";
 import { useAutoSync } from "@/hooks/useAutoSync";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 
 interface Summary {
   id: string;
@@ -34,6 +50,37 @@ interface Project {
   summaries: Summary[];
 }
 
+function SortableCard({
+  project,
+  onRegenerate,
+}: {
+  project: Project;
+  onRegenerate: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: project.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Drag to reorder"
+      >
+        <GripVertical size={16} />
+      </div>
+      <ProjectCard project={project} onRegenerate={onRegenerate} />
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +99,22 @@ export default function DashboardPage() {
   const handleSync = async () => {
     await triggerSync();
     await loadProjects();
+  };
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = projects.findIndex((p) => p.id === active.id);
+    const newIndex = projects.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(projects, oldIndex, newIndex);
+    setProjects(reordered);
+    await fetch("/api/projects", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: reordered.map((p, i) => ({ id: p.id, sortOrder: i })) }),
+    });
   };
 
   const statusCounts = {
@@ -79,8 +142,13 @@ export default function DashboardPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">project_checker</h1>
-          <p className="text-sm text-gray-500">PhD research progress tracker</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+            Project{" "}
+            <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              Checker
+            </span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">PhD research progress tracker</p>
         </div>
         <div className="flex items-center gap-3">
           <SyncBar
@@ -180,15 +248,15 @@ export default function DashboardPage() {
       {loading ? (
         <div className="text-center py-10 text-gray-400 text-sm">Loading…</div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onRegenerate={loadProjects}
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={projects.map((p) => p.id)} strategy={rectSortingStrategy}>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <SortableCard key={project.id} project={project} onRegenerate={loadProjects} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

@@ -90,7 +90,41 @@ export default function SummaryBlock({ summary, projectId, periodType, onRegener
 
       {/* Generated summary */}
       {summary.generatedSummary && (
-        <p className="text-sm text-gray-700 leading-relaxed">{summary.generatedSummary}</p>
+        <div className="space-y-1">
+          {summary.generatedSummary.split("\n").map((line, i) => {
+            const trimmed = line.trim();
+            if (!trimmed) return null;
+
+            // Section header: entire line is **bold**
+            if (trimmed.startsWith("**") && trimmed.endsWith("**") && trimmed.indexOf("**", 2) === trimmed.length - 2) {
+              return (
+                <p key={i} className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-1 first:pt-0">
+                  {trimmed.slice(2, -2)}
+                </p>
+              );
+            }
+
+            // Inline bold parser: splits on **...**
+            const renderInline = (text: string) => {
+              const parts = text.split(/(\*\*[^*]+\*\*)/g);
+              return parts.map((part, j) =>
+                part.startsWith("**") && part.endsWith("**")
+                  ? <strong key={j} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>
+                  : part
+              );
+            };
+
+            if (trimmed.startsWith("- ")) {
+              return (
+                <div key={i} className="flex gap-1.5 text-sm text-gray-700">
+                  <span className="text-gray-400 shrink-0">•</span>
+                  <span>{renderInline(trimmed.slice(2))}</span>
+                </div>
+              );
+            }
+            return <p key={i} className="text-sm text-gray-700">{renderInline(trimmed)}</p>;
+          })}
+        </div>
       )}
 
       {/* Source badge + regenerate */}
