@@ -1,13 +1,13 @@
 # Project Checker
 
-A lightweight tool for CS PhD students to track research progress across multiple GitHub repos. It auto-syncs every 3 hours, traverses all branches, and uses AI to generate readable weekly and monthly summaries.
+A lightweight tool for CS PhD students to track research progress across multiple GitHub repos. It auto-syncs every 6 hours, traverses all branches, and uses AI to generate readable weekly and monthly summaries.
 
 ---
 
 ## What it does
 
 - Connects to your GitHub repos (public **and** private, including repos you collaborate on)
-- Pulls commits from **all branches**, PRs, and issues automatically every 3 hours
+- Pulls commits from **all branches**, PRs, and issues automatically every 6 hours
 - Generates AI-powered structured weekly and monthly summaries per project
 - Shows which projects are active, slowing down, or stalled
 - Lets you drag-and-drop to reorder projects on the dashboard
@@ -89,16 +89,6 @@ AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini
 AZURE_OPENAI_API_VERSION=2024-08-01-preview
 ```
 
-**How to get credentials:**
-
-1. Sign in at [portal.azure.com](https://portal.azure.com) → search **Azure OpenAI** → Create
-2. Fill in subscription, resource group, region (e.g. East US), name, and pricing tier (Standard S0)
-3. Once deployed, go to **Keys and Endpoint** → copy **Key 1** and **Endpoint**
-4. Go to **Azure OpenAI Studio** → Deployments → Deploy base model → select **gpt-4o-mini** → give it a deployment name → Deploy
-5. Use the deployment name as `AZURE_OPENAI_DEPLOYMENT`
-
-> Cost: GPT-4o-mini is ~$0.15 per million input tokens. A typical sync with 10 projects costs well under $0.01.
-
 ---
 
 ### Option B — OpenAI
@@ -109,14 +99,6 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini   # optional, default: gpt-4o-mini
 ```
 
-**How to get credentials:**
-
-1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. Click **Create new secret key** → copy it
-3. Add it to `.env.local` as `OPENAI_API_KEY`
-
-> Cost: GPT-4o-mini is ~$0.15/$0.60 per million input/output tokens.
-
 ---
 
 ### Option C — Anthropic Claude
@@ -126,19 +108,6 @@ AI_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-3-5-haiku-20241022   # optional, default: claude-3-5-haiku-20241022
 ```
-
-**How to get credentials:**
-
-1. Go to [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
-2. Click **Create Key** → copy it
-3. Add it to `.env.local` as `ANTHROPIC_API_KEY`
-
-Also install the Anthropic SDK (one-time):
-```bash
-npm install @anthropic-ai/sdk
-```
-
-> Cost: Claude 3.5 Haiku is ~$0.80/$4.00 per million input/output tokens.
 
 ---
 
@@ -151,15 +120,6 @@ AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_MODEL=anthropic/claude-3.5-haiku   # optional, default: anthropic/claude-3.5-haiku
 ```
-
-**How to get credentials:**
-
-1. Go to [openrouter.ai/keys](https://openrouter.ai/keys)
-2. Click **Create Key** → copy it
-3. Add it to `.env.local` as `OPENROUTER_API_KEY`
-4. Optionally set `OPENROUTER_MODEL` to any model from [openrouter.ai/models](https://openrouter.ai/models)
-
-> Good option if you want to switch models easily without managing multiple accounts.
 
 ---
 
@@ -224,7 +184,7 @@ The main dashboard shows:
 
 ### Auto-sync
 
-The app automatically syncs all repos every **3 hours** while the browser tab is open. If the tab was closed for more than 3 hours, it syncs immediately on the next page load.
+The app automatically syncs all repos every **6 hours** while the browser tab is open. If the tab was closed for more than 6 hours, it syncs immediately on the next page load.
 
 To sync right now: click **"Sync now"** in the top bar.
 
@@ -271,10 +231,10 @@ Requirements:
 
 | Trigger | What happens |
 |---|---|
-| Page load (tab was closed >3h) | Immediate full sync |
+| Page load (tab was closed >6h) | Immediate full sync |
 | "Sync now" button (dashboard) | Sync all repos |
 | "Sync now" button (project page) | Sync that repo only |
-| Auto (every 3h while tab is open) | Full sync |
+| Auto (every 6h while tab is open) | Full sync |
 
 After each sync, summaries are regenerated for the current week and month.
 

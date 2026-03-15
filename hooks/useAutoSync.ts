@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { formatCountdown } from "@/lib/utils";
 
-const SYNC_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
+const SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export function useAutoSync(onSyncComplete?: () => void) {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
