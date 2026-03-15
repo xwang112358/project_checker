@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, ExternalLink, Loader2, AlertCircle, Plus, Trash2, ArrowRight } from "lucide-react";
+import { CheckCircle, ExternalLink, Loader2, AlertCircle, Plus, Trash2, ArrowRight, X } from "lucide-react";
 import clsx from "clsx";
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -23,7 +23,8 @@ export default function SetupPage() {
   const [githubUser, setGithubUser] = useState<{ login: string; avatarUrl: string } | null>(null);
   const [githubError, setGithubError] = useState("");
 
-  // Step 4 – Azure OpenAI
+  // Step 4 – AI provider
+  const [aiProvider, setAiProvider] = useState<"azure" | "openai" | "anthropic" | "openrouter">("azure");
   const [azureStatus, setAzureStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [azureModel, setAzureModel] = useState("");
   const [azureError, setAzureError] = useState("");
@@ -57,6 +58,12 @@ export default function SetupPage() {
     setAzureStatus("loading");
     setAzureError("");
     try {
+      // Save selected provider to DB first
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "ai_provider", value: aiProvider }),
+      });
       const res = await fetch("/api/setup/validate/azure", { method: "POST" });
       const data = await res.json();
       if (data.ok) {
@@ -112,8 +119,8 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* Progress bar */}
-        <div className="flex border-b border-gray-100">
+        {/* Progress bar + exit */}
+        <div className="flex border-b border-gray-100 relative">
           {stepLabel.map((label, i) => (
             <div
               key={i}
@@ -129,6 +136,13 @@ export default function SetupPage() {
               {i + 1 < step ? "✓" : i + 1}
             </div>
           ))}
+          <button
+            onClick={() => router.push("/")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            title="Exit to dashboard"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         <div className="p-8">
@@ -173,17 +187,18 @@ export default function SetupPage() {
             <div className="space-y-5">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Create a GitHub token</h2>
-                <p className="text-sm text-gray-500 mt-1">Follow these steps, then come back here.</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Use a <strong>classic PAT</strong> — it works for repos you own and repos you collaborate on.
+                </p>
               </div>
               <ol className="space-y-3 text-sm text-gray-700">
                 {[
-                  <>Go to <strong>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens</strong></>,
-                  <>Click <strong>"Generate new token"</strong></>,
+                  <>Go to <strong>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong></>,
+                  <>Click <strong>"Generate new token (classic)"</strong></>,
                   <>Set name: <code className="bg-gray-100 px-1 rounded">project-checker</code>, expiration: 1 year</>,
-                  <>Under <strong>Repository access</strong>, choose <strong>"All repositories"</strong></>,
-                  <>Under <strong>Permissions</strong>, enable <strong>Contents, Pull requests, Issues, Metadata</strong> → all Read-only</>,
-                  <>Click <strong>"Generate token"</strong> and copy it</>,
-                  <>Add it to your <code className="bg-gray-100 px-1 rounded">.env.local</code> file as <code className="bg-gray-100 px-1 rounded">GITHUB_PAT=...</code></>,
+                  <>Check the <strong>repo</strong> scope (gives read access to all your repos, including private ones and repos you collaborate on)</>,
+                  <>Click <strong>"Generate token"</strong> and copy it immediately</>,
+                  <>Add it to your <code className="bg-gray-100 px-1 rounded">.env.local</code> as <code className="bg-gray-100 px-1 rounded">GITHUB_PAT=ghp_...</code> then restart the server</>,
                 ].map((item, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full flex items-center justify-center">
@@ -194,13 +209,13 @@ export default function SetupPage() {
                 ))}
               </ol>
               <a
-                href="https://github.com/settings/personal-access-tokens/new"
+                href="https://github.com/settings/tokens/new"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 <ExternalLink size={14} />
-                Open GitHub token creation page
+                Open GitHub classic token page
               </a>
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setStep(1)} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
@@ -272,29 +287,71 @@ export default function SetupPage() {
             </div>
           )}
 
-          {/* Step 4 – Azure OpenAI */}
+          {/* Step 4 – AI provider */}
           {step === 4 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Configure Azure OpenAI</h2>
-                <p className="text-sm text-gray-500 mt-1">Add these to your <code className="bg-gray-100 px-1 rounded">.env.local</code> file and restart the server.</p>
+                <h2 className="text-xl font-bold text-gray-900">Configure AI provider</h2>
+                <p className="text-sm text-gray-500 mt-1">Choose a provider, add its credentials to <code className="bg-gray-100 px-1 rounded">.env.local</code>, restart the server, then test.</p>
               </div>
 
-              <div className="space-y-2 text-sm text-gray-700 bg-gray-50 rounded-lg p-4 font-mono">
-                <p>AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com</p>
-                <p>AZURE_OPENAI_API_KEY=your-key</p>
-                <p>AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini</p>
-                <p>AZURE_OPENAI_API_VERSION=2024-08-01-preview</p>
+              {/* Provider selector */}
+              <div className="grid grid-cols-2 gap-2">
+                {(["azure", "openai", "anthropic", "openrouter"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { setAiProvider(p); setAzureStatus("idle"); setAzureError(""); }}
+                    className={clsx(
+                      "py-2 px-3 rounded-lg text-sm font-medium border transition-colors",
+                      aiProvider === p
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                    )}
+                  >
+                    {p === "azure" && "Azure OpenAI"}
+                    {p === "openai" && "OpenAI"}
+                    {p === "anthropic" && "Anthropic Claude"}
+                    {p === "openrouter" && "OpenRouter"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Context-aware env var instructions */}
+              <div className="space-y-1.5 text-xs text-gray-600 bg-gray-50 rounded-lg p-4 font-mono">
+                {aiProvider === "azure" && <>
+                  <p>AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com</p>
+                  <p>AZURE_OPENAI_API_KEY=your-key</p>
+                  <p>AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini</p>
+                  <p>AZURE_OPENAI_API_VERSION=2024-08-01-preview</p>
+                </>}
+                {aiProvider === "openai" && <>
+                  <p>OPENAI_API_KEY=sk-...</p>
+                  <p className="text-gray-400"># OPENAI_MODEL=gpt-4o-mini  (optional)</p>
+                </>}
+                {aiProvider === "anthropic" && <>
+                  <p>ANTHROPIC_API_KEY=sk-ant-...</p>
+                  <p className="text-gray-400"># ANTHROPIC_MODEL=claude-3-5-haiku-20241022  (optional)</p>
+                  <p className="text-gray-400 mt-2"># also run: npm install @anthropic-ai/sdk</p>
+                </>}
+                {aiProvider === "openrouter" && <>
+                  <p>OPENROUTER_API_KEY=sk-or-...</p>
+                  <p className="text-gray-400"># OPENROUTER_MODEL=anthropic/claude-3.5-haiku  (optional)</p>
+                </>}
               </div>
 
               <a
-                href="https://portal.azure.com"
+                href={
+                  aiProvider === "azure" ? "https://portal.azure.com" :
+                  aiProvider === "openai" ? "https://platform.openai.com/api-keys" :
+                  aiProvider === "anthropic" ? "https://console.anthropic.com/settings/keys" :
+                  "https://openrouter.ai/keys"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 <ExternalLink size={14} />
-                Open Azure Portal
+                Get {aiProvider === "azure" ? "Azure" : aiProvider === "openai" ? "OpenAI" : aiProvider === "anthropic" ? "Anthropic" : "OpenRouter"} API key
               </a>
 
               {azureStatus === "ok" && (
@@ -392,10 +449,9 @@ export default function SetupPage() {
                 </button>
                 <button
                   onClick={() => router.push("/")}
-                  disabled={repos.length === 0}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg text-sm transition-colors"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
                 >
-                  Go to dashboard →
+                  {repos.length === 0 ? "Skip →" : "Go to dashboard →"}
                 </button>
               </div>
             </div>
