@@ -17,6 +17,7 @@ A lightweight tool for CS PhD students to track research progress across multipl
 - Lets you drag-and-drop to reorder projects on the dashboard
 - Lets you add manual notes for work not visible in GitHub
 - Supports **Azure OpenAI, OpenAI, Anthropic Claude, and OpenRouter**
+- **GPU Availability monitor**: SSH into lab servers and display real-time GPU usage across your cluster
 
 ---
 
@@ -244,6 +245,70 @@ After each sync, summaries are regenerated for the current week and month.
 
 ---
 
+## GPU Availability
+
+Click the **CPU icon** (⬜) in the top-right of the dashboard to open the GPU monitor page. It SSHes into your lab servers every 30 seconds and displays real-time GPU utilization, memory usage, and temperature.
+
+### Setting up SSH access
+
+The Next.js server connects to remote machines using your **local SSH private key**. Authorized keys must already be configured on each remote server.
+
+1. Find your local SSH private key. On Windows it is typically at:
+   ```
+   C:\Users\<you>\.ssh\id_rsa
+   C:\Users\<you>\.ssh\id_ed25519
+   ```
+   Run `ls ~/.ssh/` in a terminal to see what you have.
+
+2. Add the path to `.env.local`:
+   ```
+   SSH_PRIVATE_KEY_PATH=C:\Users\<you>\.ssh\id_ed25519
+   ```
+
+3. Restart the dev server after saving `.env.local`.
+
+Optional SSH settings:
+```
+SSH_PASSPHRASE=           # leave empty if your key has no passphrase
+SSH_CONNECT_TIMEOUT_MS=8000   # per-server timeout in ms (default: 8000)
+```
+
+### Adding a server
+
+Click **Add Server** on the GPU page and fill in:
+- **Label** — a short display name (e.g. `bf65`)
+- **Hostname / IP** — e.g. `bf65.csb.vanderbilt.edu`
+- **SSH Username** — your username on the remote machine
+- **Port** — defaults to 22
+
+Server configs are stored in `gpu-servers.json` at the project root (not committed to git by default).
+
+### What is displayed
+
+Each server card shows:
+- GPU model and count (e.g. `4× NVIDIA A100-SXM4-40GB`)
+- Per-GPU utilization bar: green < 30%, yellow 30–70%, red > 70%
+- Memory used / total (GB) and temperature (°C)
+- Online / Offline status with error details if unreachable
+
+A **Free GPUs** count at the top shows GPUs with < 10% utilization across all online servers.
+
+### Troubleshooting GPU monitor
+
+**"Polling failed: SSH key not found at …"**
+Set `SSH_PRIVATE_KEY_PATH` in `.env.local` to your actual key path and restart the server.
+
+**"Authentication failed"**
+Your public key is not in `~/.ssh/authorized_keys` on the remote server, or the wrong private key is configured.
+
+**"Connection timed out"**
+The server is unreachable — check that you are on VPN.
+
+**"nvidia-smi not found"**
+The server is reachable but CUDA/nvidia-smi is not installed or not in `$PATH`.
+
+---
+
 ## Troubleshooting
 
 ### "Repo not accessible" on a card
@@ -295,20 +360,27 @@ project_checker/
 ├── app/                    ← Next.js pages
 │   ├── page.tsx            ← Dashboard (with drag-to-reorder)
 │   ├── setup/page.tsx      ← Setup wizard
+│   ├── gpu/page.tsx        ← GPU Availability monitor
 │   └── projects/[id]/      ← Project detail page
 ├── app/api/                ← Backend API routes
 │   ├── sync/               ← GitHub sync endpoints
 │   ├── projects/           ← Project CRUD + reorder (PATCH)
 │   ├── summaries/          ← Summary generation
 │   ├── notes/              ← Manual notes
-│   └── setup/validate/     ← Credential validation
+│   ├── setup/validate/     ← Credential validation
+│   ├── gpu-servers/        ← GPU server CRUD (gpu-servers.json)
+│   └── gpu/poll/           ← SSH polling route (nvidia-smi)
 ├── components/             ← UI components
+│   ├── GpuServerCard.tsx   ← Per-server GPU status card
+│   └── AddServerModal.tsx  ← Add server form modal
 ├── hooks/                  ← useAutoSync hook
 ├── lib/                    ← Core logic
 │   ├── github.ts           ← GitHub API client (all-branch sync)
 │   ├── azure-openai.ts     ← Multi-provider AI client
 │   ├── summarize.ts        ← Structured summary generation
-│   └── db.ts               ← Prisma client
+│   ├── db.ts               ← Prisma client
+│   └── gpu-types.ts        ← TypeScript interfaces for GPU monitor
+├── gpu-servers.json        ← Lab server configs (add to .gitignore if needed)
 ├── prisma/
 │   └── schema.prisma       ← Database schema
 ├── .env.local              ← Your secrets (not committed)
