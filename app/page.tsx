@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Settings, BookOpen } from "lucide-react";
+import { Settings, BookOpen, Cpu } from "lucide-react";
 import SyncBar from "@/components/SyncBar";
 import ProjectCard from "@/components/ProjectCard";
 import { useAutoSync } from "@/hooks/useAutoSync";
@@ -157,6 +157,13 @@ export default function DashboardPage() {
             countdown={countdown}
             onSync={handleSync}
           />
+          <Link
+            href="/gpu"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="GPU Availability"
+          >
+            <Cpu size={18} />
+          </Link>
           <Link
             href="/setup"
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

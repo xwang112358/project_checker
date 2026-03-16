@@ -1,0 +1,28 @@
+{
+  "servers": [
+    {
+      "id": "7d007df2-af66-4d1d-aa05-7982b5312bf8",
+      "label": "bf64",
+      "host": "bf64.csb.vanderbilt.edu",
+      "port": 22,
+      "username": "wangx86",
+      "sortOrder": 0
+    },
+    {
+      "id": "a75cef84-3c2e-46e7-8e35-6e341dea01b7",
+      "label": "bf65",
+      "host": "bf65.csb.vanderbilt.edu",
+      "port": 22,
+      "username": "wangx86",
+      "sortOrder": 1
+    },
+    {
+      "id": "efea4479-30e9-4a79-865f-58f14aad533a",
+      "label": "aquinas",
+      "host": "aquinas.csb.vanderbilt.edu",
+      "port": 22,
+      "username": "wangx86",
+      "sortOrder": 2
+    }
+  ]
+}
